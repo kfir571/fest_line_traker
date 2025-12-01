@@ -1,13 +1,21 @@
 # backend/collector_job/sampler.py
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 import json
 import requests
 
 from .config import FASTLANE_URL
 
 
-def get_current_price() -> Optional[float]:
+def get_current_price() -> Tuple[Optional[float], str, Optional[str]]:
+    """
+    retrun:
+    (price, status, error_message)
+
+    status: "ok" / "error"
+    price: float or None
+    error_message: messege or None
+    """
     headers = {
         "Content-Type": "application/json; charset=utf-8",
         "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -21,37 +29,54 @@ def get_current_price() -> Optional[float]:
         ),
     }
 
-    resp = requests.post(FASTLANE_URL, headers=headers, data="", timeout=10)
+    try:
+        resp = requests.post(FASTLANE_URL, headers=headers, data="", timeout=10)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        # תקלה ברשת / HTTP
+        return None, "error", f"request_error: {e}"
 
     try:
         data = resp.json()
-    except requests.exceptions.JSONDecodeError:
-        print("⚠ Not JSON, raw response:")
-        print(resp.text)
-        return None
-
-    inner_json = json.loads(data["d"])
-    raw_price = inner_json["Price"]
+    except ValueError as e:
+        return None, "error", f"json_decode_error: {e}; body_start={resp.text[:200]!r}"
 
     try:
-        return float(raw_price)
-    except ValueError:
-        print("⚠ Invalid price format:", raw_price)
-        return None
+        inner_json = json.loads(data["d"])
+        raw_price = inner_json["Price"]
+    except (KeyError, TypeError, ValueError) as e:
+        return None, "error", f"parse_error: {e}; data_d={data.get('d')!r}"
+
+    try:
+        price = float(raw_price)
+    except (TypeError, ValueError) as e:
+        return None, "error", f"invalid_price: {raw_price!r}; error={e}"
+
+    # אם הגענו לפה – הכול בסדר
+    return price, "ok", None
 
 
-def build_sample_row() -> Optional[dict]:
-    price = get_current_price()
-    if price is None:
-        return None
-
+def build_sample_row() -> dict:
+    """
+    - measured_at
+    - weekday
+    - price
+    - status
+    - error_message
+    - is_holiday
+    - holiday_sector
+    """
     now = datetime.now()
     weekday = now.weekday()
+
+    price, status, error_message = get_current_price()
 
     return {
         "measured_at": now,
         "weekday": weekday,
-        "price": price,
+        "price": price,               
+        "status": status,             
+        "error_message": error_message,
         "is_holiday": False,
         "holiday_sector": "none",
     }

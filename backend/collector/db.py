@@ -6,22 +6,41 @@ def get_connection():
     return psycopg2.connect(POSTGRES_DSN)
 
 def insert_raw_sample(sample: Mapping[str, Any]) -> None:
+    """
+    sample:
+    - measured_at: datetime
+    - weekday: int
+    - price: float | None
+    - status: str ("ok" / "error")
+    - error_message: str | None
+    - is_holiday: bool
+    - holiday_sector: str
+    """
     conn = get_connection()
     try:
         with conn, conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO raw_samples (
-                    measured_at, weekday, price, is_holiday, holiday_sector
-                ) VALUES (%s, %s, %s, %s, %s)
+                    measured_at,
+                    weekday,
+                    price,
+                    status,
+                    error_message,
+                    is_holiday,
+                    holiday_sector
+                )
+                VALUES (
+                    %(measured_at)s,
+                    %(weekday)s,
+                    %(price)s,
+                    %(status)s,
+                    %(error_message)s,
+                    %(is_holiday)s,
+                    %(holiday_sector)s
+                )
                 """,
-                (
-                    sample["measured_at"],
-                    sample["weekday"],
-                    sample["price"],
-                    sample["is_holiday"],
-                    sample["holiday_sector"],
-                ),
+                sample,
             )
     finally:
         conn.close()
