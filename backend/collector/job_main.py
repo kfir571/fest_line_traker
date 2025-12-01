@@ -10,6 +10,7 @@ def main() -> None:
 
     try:
         insert_raw_sample(sample)
+        print("semplse:\n", sample)
     except Exception as e:
         print("DB error while inserting sample:", e)
 
