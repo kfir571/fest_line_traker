@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, Tuple
 import json
 import requests
+import holidays
 
 from .config import FASTLANE_URL
 
@@ -56,6 +57,31 @@ def get_current_price() -> Tuple[Optional[float], str, Optional[str]]:
     return price, "ok", None
 
 
+def get_holiday_info(d: date) -> Tuple[bool, str]:
+    """
+    return:
+    - is_holiday: bool
+    - holiday_sector: "jewish" / "muslim" / "christian" / "none"
+    """
+
+    il_holidays = holidays.country_holidays("IL", years=[d.year])
+
+    holiday_name = il_holidays.get(d)
+    if not holiday_name:
+        return False, "none"
+
+    name_lower = holiday_name.lower()
+
+    if any(k in name_lower for k in ["eid", "fitr", "adha", "ramadan"]):
+        sector = "muslim"
+    elif any(k in name_lower for k in ["christmas", "easter", "orthodox"]):
+        sector = "christian"
+    else:
+        sector = "jewish"
+
+    return True, sector
+
+
 def build_sample_row() -> dict:
     """
     - measured_at
@@ -70,6 +96,7 @@ def build_sample_row() -> dict:
     weekday = now.weekday()
 
     price, status, error_message = get_current_price()
+    is_holiday, holiday_sector = get_holiday_info(now.date())
 
     return {
         "measured_at": now,
@@ -77,6 +104,6 @@ def build_sample_row() -> dict:
         "price": price,               
         "status": status,             
         "error_message": error_message,
-        "is_holiday": False,
-        "holiday_sector": "none",
+        "is_holiday": is_holiday,
+        "holiday_sector": holiday_sector,
     }

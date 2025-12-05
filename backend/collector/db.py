@@ -55,3 +55,16 @@ def get_all_raw_samples() -> list[tuple]:
     finally:
         conn.close()
 
+def clear_old_raw_samples():
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE raw_samples;")
+        conn.commit()
+        print("✅ All rows in raw_samples have been deleted.")
+    finally:
+        conn.close()
+
+
+
