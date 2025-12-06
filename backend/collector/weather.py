@@ -44,21 +44,15 @@ def get_current_weather(
 
     rain = data.get("rain", {}) or {}
     rain_intensity = rain.get("1h") or rain.get("3h")
-    is_raining = bool(rain_intensity) or (
-        isinstance(weather_obj.get("main"), str)
-        and "rain" in weather_obj["main"].lower()
-    )
 
     return {
         "temperature": main.get("temp"),
-        "feels_like": main.get("feels_like"),
         "humidity": main.get("humidity"),
         "wind_speed": wind.get("speed"),
         "wind_direction": wind.get("deg"),
         "clouds": clouds.get("all"),
         "visibility": data.get("visibility"),
         "weather_description": weather_obj.get("description"),
-        "is_raining": is_raining,
         "rain_intensity": rain_intensity,
     }
  

@@ -19,14 +19,12 @@ def insert_raw_sample(sample: Mapping[str, Any]) -> None:
 
     Weather fields:
         - temperature: float | None
-        - feels_like: float | None
         - humidity: int | None
         - wind_speed: float | None
         - wind_direction: int | None
         - clouds: int | None
         - visibility: int | None
         - weather_description: str | None
-        - is_raining: bool | None
         - rain_intensity: float | None
     """
     conn = get_connection()
@@ -44,14 +42,12 @@ def insert_raw_sample(sample: Mapping[str, Any]) -> None:
                     holiday_sector,
 
                     temperature,
-                    feels_like,
                     humidity,
                     wind_speed,
                     wind_direction,
                     clouds,
                     visibility,
                     weather_description,
-                    is_raining,
                     rain_intensity
                 )
                 VALUES (
@@ -64,14 +60,12 @@ def insert_raw_sample(sample: Mapping[str, Any]) -> None:
                     %(holiday_sector)s,
 
                     %(temperature)s,
-                    %(feels_like)s,
                     %(humidity)s,
                     %(wind_speed)s,
                     %(wind_direction)s,
                     %(clouds)s,
                     %(visibility)s,
                     %(weather_description)s,
-                    %(is_raining)s,
                     %(rain_intensity)s
                 )
                 """,
