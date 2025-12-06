@@ -4,17 +4,30 @@ from .config import POSTGRES_DSN
 
 def get_connection():
     return psycopg2.connect(POSTGRES_DSN)
-
+    
 def insert_raw_sample(sample: Mapping[str, Any]) -> None:
     """
-    sample:
-    - measured_at: datetime
-    - weekday: int
-    - price: float | None
-    - status: str ("ok" / "error")
-    - error_message: str | None
-    - is_holiday: bool
-    - holiday_sector: str
+    sample contains:
+    Base fields:
+        - measured_at: datetime
+        - weekday: int
+        - price: float | None
+        - status: str ("ok" / "error")
+        - error_message: str | None
+        - is_holiday: bool
+        - holiday_sector: str
+
+    Weather fields:
+        - temperature: float | None
+        - feels_like: float | None
+        - humidity: int | None
+        - wind_speed: float | None
+        - wind_direction: int | None
+        - clouds: int | None
+        - visibility: int | None
+        - weather_description: str | None
+        - is_raining: bool | None
+        - rain_intensity: float | None
     """
     conn = get_connection()
     try:
@@ -28,7 +41,18 @@ def insert_raw_sample(sample: Mapping[str, Any]) -> None:
                     status,
                     error_message,
                     is_holiday,
-                    holiday_sector
+                    holiday_sector,
+
+                    temperature,
+                    feels_like,
+                    humidity,
+                    wind_speed,
+                    wind_direction,
+                    clouds,
+                    visibility,
+                    weather_description,
+                    is_raining,
+                    rain_intensity
                 )
                 VALUES (
                     %(measured_at)s,
@@ -37,7 +61,18 @@ def insert_raw_sample(sample: Mapping[str, Any]) -> None:
                     %(status)s,
                     %(error_message)s,
                     %(is_holiday)s,
-                    %(holiday_sector)s
+                    %(holiday_sector)s,
+
+                    %(temperature)s,
+                    %(feels_like)s,
+                    %(humidity)s,
+                    %(wind_speed)s,
+                    %(wind_direction)s,
+                    %(clouds)s,
+                    %(visibility)s,
+                    %(weather_description)s,
+                    %(is_raining)s,
+                    %(rain_intensity)s
                 )
                 """,
                 sample,

@@ -6,7 +6,7 @@ import requests
 import holidays
 
 from .config import FASTLANE_URL
-
+from .weather import get_current_weather
 
 def get_current_price() -> Tuple[Optional[float], str, Optional[str]]:
     """
@@ -96,9 +96,10 @@ def build_sample_row() -> dict:
     weekday = now.weekday()
 
     price, status, error_message = get_current_price()
+
     is_holiday, holiday_sector = get_holiday_info(now.date())
 
-    return {
+    row = {
         "measured_at": now,
         "weekday": weekday,
         "price": price,               
@@ -107,3 +108,8 @@ def build_sample_row() -> dict:
         "is_holiday": is_holiday,
         "holiday_sector": holiday_sector,
     }
+
+    weather = get_current_weather()
+    row.update(weather)
+
+    return row
