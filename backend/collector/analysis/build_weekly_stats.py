@@ -44,7 +44,7 @@ COMMIT;
 
 
 def rebuild_weekly_stats():
-    print(f"[analytics] connecting to DB: {POSTGRES_DSN!r}")
+    print(f"[analytics] connecting to DB")
     conn = psycopg2.connect(POSTGRES_DSN)
     try:
         with conn:
