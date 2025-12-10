@@ -1,0 +1,317 @@
+# backend/api/routes_analytics.py
+
+from flask import Blueprint, jsonify, request
+from backend.api.db import get_db_connection
+from backend.collector.config import (
+    WEEKDAY_NAMES_HE, 
+    DEFAULT_FROM_HOUR, 
+    DEFAULT_TO_HOUR, 
+    DEFAULT_MAX_RESULTS, 
+    MIN_SAMPLE_COUNT_FOR_RECOMMENDATION
+)
+
+analytics_bp = Blueprint("analytics", __name__)
+
+
+# ------------------------------------------------------------
+# 1) HEALTHCHECK
+# ------------------------------------------------------------
+@analytics_bp.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"})
+
+
+# ------------------------------------------------------------
+# 2) WEEKLY STATS — Main endpoint for weekly-day analytics
+# ------------------------------------------------------------
+@analytics_bp.route("/weekly-stats", methods=["GET"])
+def weekly_stats():
+    """
+    Returns aggregated statistics from weekly_stats table
+    for a specific weekday (0 = Monday … 6 = Sunday).
+
+    Query parameters:
+        weekday (required): integer 0–6
+        holiday_mode (optional): 'all' / 'holiday' / 'non_holiday'
+    """
+
+    #Read and validate query parameters
+    weekday = request.args.get("weekday", type=int)
+    holiday_mode = request.args.get("holiday_mode", default="all", type=str)
+
+    if weekday is None or weekday < 0 or weekday > 6:
+        return jsonify({"error": "weekday parameter must be 0–6"}), 400
+
+    #Build WHERE filter according to holiday_mode
+    holiday_filter = ""
+    if holiday_mode == "holiday":
+        holiday_filter = "AND is_holiday = TRUE"
+    elif holiday_mode == "non_holiday":
+        holiday_filter = "AND is_holiday = FALSE"
+    # If holiday_mode == "all" -> no filter is added
+
+    #Step 3: Execute SQL query
+    query = f"""
+        SELECT
+            weekday,
+            hour,
+            minute_bucket,
+            avg_price,
+            min_price,
+            max_price,
+            sample_count,
+            days_count,
+            is_holiday,
+            holiday_sector
+        FROM weekly_stats
+        WHERE weekday = %s
+        {holiday_filter}
+        ORDER BY hour, minute_bucket;
+    """
+
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute(query, (weekday,))
+        rows = cur.fetchall()
+    conn.close()
+
+    #Convert SQL rows to JSON-friendly structure
+    results = []
+    for r in rows:
+        results.append({
+            "hour": r[1],
+            "minute_bucket": r[2],
+            "avg_price": float(r[3]),
+            "min_price": float(r[4]),
+            "max_price": float(r[5]),
+            "sample_count": r[6],
+            "days_count": r[7],
+            "is_holiday": r[8],
+            "holiday_sector": r[9],
+        })
+
+    #Convert weekday index to Hebrew name (Monday=0)
+    weekday_he = WEEKDAY_NAMES_HE[weekday]
+
+    return jsonify({
+        "weekday": weekday,
+        "weekday_name_he": weekday_he,
+        "holiday_mode": holiday_mode,
+        "slots": results
+    })
+
+@analytics_bp.route("/recommendation", methods=["GET"])
+def recommendation():
+    """
+    Returns best (cheapest) time slots across selected weekdays and hours,
+    based on aggregated data in weekly_stats.
+
+    Query parameters:
+        from_hour (optional): int, default DEFAULT_FROM_HOUR (e.g. 6)
+        to_hour   (optional): int, default DEFAULT_TO_HOUR   (e.g. 22)
+        allowed_weekdays (optional): comma-separated list of 0..6.
+            Example: "0,1,2,3,4" (Mon-Fri).
+            Default: all 0..6.
+        holiday_mode (optional): 'all' / 'holiday' / 'non_holiday'
+            Default: 'all'.
+        max_results (optional): int, how many top slots to return.
+            Default: DEFAULT_MAX_RESULTS (e.g. 3).
+    """
+
+    # ----- Step 1: Read and validate query parameters -----
+    from_hour = request.args.get("from_hour", type=int)
+    to_hour = request.args.get("to_hour", type=int)
+    max_results = request.args.get("max_results", type=int)
+    holiday_mode = request.args.get("holiday_mode", default="all", type=str)
+    allowed_weekdays_param = request.args.get("allowed_weekdays", type=str)
+
+    # Apply defaults if not provided
+    if from_hour is None:
+        from_hour = DEFAULT_FROM_HOUR
+    if to_hour is None:
+        to_hour = DEFAULT_TO_HOUR
+    if max_results is None or max_results <= 0:
+        max_results = DEFAULT_MAX_RESULTS
+
+    holiday_mode = holiday_mode.lower().strip()
+
+    # Validate hour range
+    if from_hour < 0 or from_hour > 23 or to_hour < 0 or to_hour > 23 or from_hour > to_hour:
+        return jsonify({"error": "Invalid hour range (from_hour/to_hour). Must be between 0 and 23 and from_hour <= to_hour."}), 400
+
+    # Parse allowed_weekdays (comma-separated list) or use all 0..6
+    if allowed_weekdays_param:
+        try:
+            allowed_weekdays = [int(x) for x in allowed_weekdays_param.split(",") if x.strip() != ""]
+        except ValueError:
+            return jsonify({"error": "allowed_weekdays must be a comma-separated list of integers 0..6."}), 400
+    else:
+        allowed_weekdays = list(range(7))  # 0..6
+
+    # Validate weekday values
+    if any(w < 0 or w > 6 for w in allowed_weekdays):
+        return jsonify({"error": "allowed_weekdays values must be between 0 and 6."}), 400
+
+    # ----- Step 2: Build holiday filter -----
+    holiday_filter = ""
+    if holiday_mode == "holiday":
+        holiday_filter = "AND is_holiday = TRUE"
+    elif holiday_mode == "non_holiday":
+        holiday_filter = "AND is_holiday = FALSE"
+    # 'all' → no filter
+
+    # ----- Step 3: Build and execute SQL query -----
+    # We use weekday = ANY(%s) to pass an array of weekdays safely.
+    query = f"""
+        SELECT
+            weekday,
+            hour,
+            minute_bucket,
+            avg_price,
+            min_price,
+            max_price,
+            sample_count,
+            days_count,
+            is_holiday,
+            holiday_sector
+        FROM weekly_stats
+        WHERE
+            weekday = ANY(%s)
+            AND hour BETWEEN %s AND %s
+            AND sample_count >= %s
+            {holiday_filter}
+        ORDER BY avg_price ASC
+        LIMIT %s;
+    """
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                query,
+                (
+                    allowed_weekdays,
+                    from_hour,
+                    to_hour,
+                    MIN_SAMPLE_COUNT_FOR_RECOMMENDATION,
+                    max_results,
+                ),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    # ----- Step 4: Convert rows to result list -----
+    results = []
+    for idx, r in enumerate(rows, start=1):
+        w = r[0]
+        results.append({
+            "rank": idx,
+            "weekday": w,
+            "weekday_name_he": WEEKDAY_NAMES_HE[w],
+            "hour": r[1],
+            "minute_bucket": r[2],
+            "avg_price": float(r[3]) if r[3] is not None else None,
+            "min_price": float(r[4]) if r[4] is not None else None,
+            "max_price": float(r[5]) if r[5] is not None else None,
+            "sample_count": r[6],
+            "days_count": r[7],
+            "is_holiday": r[8],
+            "holiday_sector": r[9],
+        })
+
+    # ----- Step 5: Build constraints object for the response -----
+    constraints = {
+        "from_hour": from_hour,
+        "to_hour": to_hour,
+        "allowed_weekdays": allowed_weekdays,
+        "holiday_mode": holiday_mode,
+        "max_results": max_results,
+        "min_sample_count": MIN_SAMPLE_COUNT_FOR_RECOMMENDATION,
+    }
+
+    # ----- Step 6: Return final JSON -----
+    return jsonify({
+        "constraints": constraints,
+        "results": results,
+    })
+
+@analytics_bp.route("/hourly-graph", methods=["GET"])
+def hourly_graph():
+    """
+    Returns a full day's time-series (hour + minute_bucket) for graph visualization.
+    Based on weekly_stats table.
+
+    Query parameters:
+        weekday (required): integer 0..6
+        from_hour (optional): default DEFAULT_FROM_HOUR
+        to_hour   (optional): default DEFAULT_TO_HOUR
+        holiday_mode (optional): 'all' / 'holiday' / 'non_holiday'
+    """
+
+    #Read parameters 
+    weekday = request.args.get("weekday", type=int)
+    from_hour = request.args.get("from_hour", default=DEFAULT_FROM_HOUR, type=int)
+    to_hour = request.args.get("to_hour", default=DEFAULT_TO_HOUR, type=int)
+    holiday_mode = request.args.get("holiday_mode", default="all", type=str).lower().strip()
+
+    if weekday is None or weekday < 0 or weekday > 6:
+        return jsonify({"error": "weekday must be an integer between 0 and 6"}), 400
+
+    if from_hour < 0 or to_hour > 23 or from_hour > to_hour:
+        return jsonify({"error": "Invalid hour range"}), 400
+
+    #Holiday filter 
+    holiday_filter = ""
+    if holiday_mode == "holiday":
+        holiday_filter = "AND is_holiday = TRUE"
+    elif holiday_mode == "non_holiday":
+        holiday_filter = "AND is_holiday = FALSE"
+
+    #SQL Query 
+    query = f"""
+        SELECT
+            hour,
+            minute_bucket,
+            avg_price,
+            min_price,
+            max_price,
+            sample_count,
+            days_count
+        FROM weekly_stats
+        WHERE weekday = %s
+          AND hour BETWEEN %s AND %s
+          {holiday_filter}
+        ORDER BY hour ASC, minute_bucket ASC;
+    """
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, (weekday, from_hour, to_hour))
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    #Format response 
+    graph_data = []
+    for r in rows:
+        graph_data.append({
+            "hour": r[0],
+            "minute_bucket": r[1],
+            "time_label": f"{int(r[0]):02d}:{int(r[1]):02d}",  # for front-end display
+            "avg_price": float(r[2]) if r[2] is not None else None,
+            "min_price": float(r[3]) if r[3] is not None else None,
+            "max_price": float(r[4]) if r[4] is not None else None,
+            "sample_count": r[5],
+            "days_count": r[6],
+        })
+
+    return jsonify({
+        "weekday": weekday,
+        "weekday_name_he": WEEKDAY_NAMES_HE[weekday],
+        "from_hour": from_hour,
+        "to_hour": to_hour,
+        "holiday_mode": holiday_mode,
+        "data": graph_data
+    })
