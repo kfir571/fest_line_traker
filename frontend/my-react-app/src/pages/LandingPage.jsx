@@ -1,5 +1,5 @@
 import "../App.css";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import DayPicker from "../components/DayPicker.jsx";
 import TimeRangePicker from "../components/TimeRangePicker.jsx";
 import PriceChart from "../components/PriceChart.jsx";
@@ -29,27 +29,44 @@ function LandingPage() {
     const [fromHour, setFromHour] = useState(6);
     const [toHour, setToHour] = useState(9);
 
+    const hasInteractedRef = useRef(false);
+
     const handleTimeChange = async (newFrom, newTo) => {
+        hasInteractedRef.current = true;
         setFromHour(newFrom);
         setToHour(newTo);
-
-        setRecStatus("loading");
-        try {
-            const data = await getRecommendation(selectedDay, newFrom, newTo);
-            setApiRespons(data);
-            setRecStatus("success");
-        } catch (e) {
-            setApiRespons(`שגיאה: ${String(e)}`);
-            setRecStatus("error");
-        }
     };
+
+    const handleDayChange = (newDay) => {
+        hasInteractedRef.current = true;
+        setSelectedDay(newDay);
+    };
+
+    useEffect(() => {
+        if (!hasInteractedRef.current) return; // עדיין לא הייתה אינטראקציה
+
+        const fetchRecommendation = async () => {
+            setRecStatus("loading");
+            try {
+                const recommendation = await getRecommendation(selectedDay, fromHour, toHour);
+                setApiRespons(recommendation);
+                setRecStatus("success");
+            } catch (e) {
+                setApiRespons(`שגיאה: ${String(e)}`);
+                setRecStatus("error");
+            }
+        };
+
+        fetchRecommendation();
+    }, [selectedDay, fromHour, toHour]);
+
 
     return (
         <div className="landing-page">
             <DayPicker
                 days={days}
                 selectedDay={selectedDay}
-                onChange={setSelectedDay}
+                onChange={handleDayChange}
             />
 
             <TimeRangePicker
@@ -60,7 +77,7 @@ function LandingPage() {
 
             <RecommendationBox
                 status={recStatus}
-                recommendation={apiRespons} // זמנית
+                recommendation={apiRespons} 
             />
 
             <PriceChart data={demoGraphData} />
