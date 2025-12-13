@@ -109,6 +109,7 @@ def recommendation():
     Query parameters:
         from_hour (optional): int, default DEFAULT_FROM_HOUR (e.g. 6)
         to_hour   (optional): int, default DEFAULT_TO_HOUR   (e.g. 22)
+            NOTE: to_hour is treated as an EXCLUSIVE upper bound (range is [from_hour:00, to_hour:00)).
         allowed_weekdays (optional): comma-separated list of 0..6.
             Example: "0,1,2,3,4" (Mon-Fri).
             Default: all 0..6.
@@ -136,13 +137,25 @@ def recommendation():
     holiday_mode = holiday_mode.lower().strip()
 
     # Validate hour range
-    if from_hour < 0 or from_hour > 23 or to_hour < 0 or to_hour > 23 or from_hour > to_hour:
-        return jsonify({"error": "Invalid hour range (from_hour/to_hour). Must be between 0 and 23 and from_hour <= to_hour."}), 400
+    # from_hour: 0..23
+    # to_hour:   1..24  (exclusive upper bound)
+    # require from_hour < to_hour
+    if (
+        from_hour < 0 or from_hour > 23
+        or to_hour < 1 or to_hour > 24
+        or from_hour >= to_hour
+    ):
+        return jsonify({
+            "error": "Invalid hour range (from_hour/to_hour). "
+                     "from_hour must be 0..23, to_hour must be 1..24, and from_hour < to_hour."
+        }), 400
 
     # Parse allowed_weekdays (comma-separated list) or use all 0..6
     if allowed_weekdays_param:
         try:
-            allowed_weekdays = [int(x) for x in allowed_weekdays_param.split(",") if x.strip() != ""]
+            allowed_weekdays = [
+                int(x) for x in allowed_weekdays_param.split(",") if x.strip() != ""
+            ]
         except ValueError:
             return jsonify({"error": "allowed_weekdays must be a comma-separated list of integers 0..6."}), 400
     else:
@@ -161,7 +174,9 @@ def recommendation():
     # 'all' → no filter
 
     # ----- Step 3: Build and execute SQL query -----
-    # We use weekday = ANY(%s) to pass an array of weekdays safely.
+    # NOTE: to_hour is EXCLUSIVE. We filter by minutes since midnight:
+    #   bucket_min = hour*60 + minute_bucket
+    #   keep: from_hour*60 <= bucket_min < to_hour*60
     query = f"""
         SELECT
             weekday,
@@ -177,10 +192,11 @@ def recommendation():
         FROM weekly_stats
         WHERE
             weekday = ANY(%s)
-            AND hour BETWEEN %s AND %s
+            AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60)
+            AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60)
             AND sample_count >= %s
             {holiday_filter}
-        ORDER BY avg_price ASC
+        ORDER BY avg_price ASC, hour ASC, minute_bucket ASC
         LIMIT %s;
     """
 
@@ -228,6 +244,7 @@ def recommendation():
         "holiday_mode": holiday_mode,
         "max_results": max_results,
         "min_sample_count": MIN_SAMPLE_COUNT_FOR_RECOMMENDATION,
+        "to_hour_is_exclusive": True,
     }
 
     # ----- Step 6: Return final JSON -----
