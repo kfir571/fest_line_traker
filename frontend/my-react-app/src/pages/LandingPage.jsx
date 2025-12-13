@@ -23,45 +23,47 @@ const days = [
 ];
 
 function LandingPage() {
-  const [apiRespons, setApiRespons] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(new Date().getDay());
-  const [fromHour, setFromHour] = useState(6);
-  const [toHour, setToHour] = useState(9);
+    const [recStatus, setRecStatus] = useState("idle");  // "idle" | "loading" | "success" | "error"
+    const [apiRespons, setApiRespons] = useState(null);
+    const [selectedDay, setSelectedDay] = useState(new Date().getDay());
+    const [fromHour, setFromHour] = useState(6);
+    const [toHour, setToHour] = useState(9);
 
-  const handleTimeChange = async (newFrom, newTo) => {
-    setFromHour(newFrom);
-    setToHour(newTo);
+    const handleTimeChange = async (newFrom, newTo) => {
+        setFromHour(newFrom);
+        setToHour(newTo);
 
-    try {
-      const data = await getRecommendation(selectedDay, newFrom, newTo);
-      setApiRespons(JSON.stringify(data));
-    } catch (e) {
-      setApiRespons(`שגיאה: ${String(e)}`);
-    }
-  };
+        setRecStatus("loading");
+        try {
+            const data = await getRecommendation(selectedDay, newFrom, newTo);
+            setApiRespons(data);
+            setRecStatus("success");
+        } catch (e) {
+            setApiRespons(`שגיאה: ${String(e)}`);
+            setRecStatus("error");
+        }
+    };
 
-  return (
-    <div className="landing-page">
-      <DayPicker
-        days={days}
-        selectedDay={selectedDay}
-        onChange={setSelectedDay}
-      />
+    return (
+        <div className="landing-page">
+            <DayPicker
+                days={days}
+                selectedDay={selectedDay}
+                onChange={setSelectedDay}
+            />
 
-      <TimeRangePicker
-        fromHour={fromHour}
-        toHour={toHour}
-        onChange={handleTimeChange}
-      />
+            <TimeRangePicker
+                fromHour={fromHour}
+                toHour={toHour}
+                onChange={handleTimeChange}
+            />
 
-      <RecommendationBox
-        selectedDay={selectedDay}
-        fromHour={fromHour}
-        toHour={toHour}
-        recommendation={apiRespons} // זמנית, עד שתעבד את המבנה
-      />
+            <RecommendationBox
+                status={recStatus}
+                recommendation={apiRespons} // זמנית
+            />
 
-      <PriceChart data={demoGraphData} />
-    </div>
-  );
+            <PriceChart data={demoGraphData} />
+        </div>
+    );
 } export default LandingPage
