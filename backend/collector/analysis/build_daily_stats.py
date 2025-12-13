@@ -25,7 +25,7 @@ SELECT
     EXTRACT(HOUR FROM rs.measured_at) AS hour,
     CASE
         WHEN EXTRACT(HOUR FROM rs.measured_at) BETWEEN 6 AND 10
-            THEN FLOOR(EXTRACT(MINUTE FROM rs.measured_at) / 30) * 30
+            THEN FLOOR(EXTRACT(MINUTE FROM rs.measured_at) / 15) * 15
         ELSE 0
     END AS minute_bucket,
     AVG(rs.price) AS avg_price,
@@ -45,7 +45,7 @@ GROUP BY
     EXTRACT(HOUR FROM rs.measured_at),
     CASE
         WHEN EXTRACT(HOUR FROM rs.measured_at) BETWEEN 6 AND 10
-            THEN FLOOR(EXTRACT(MINUTE FROM rs.measured_at) / 30) * 30
+            THEN FLOOR(EXTRACT(MINUTE FROM rs.measured_at) / 15) * 15
         ELSE 0
     END;
 

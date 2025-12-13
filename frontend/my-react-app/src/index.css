@@ -1,0 +1,24 @@
+/* איפוס בסיסי */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* שכולם יתפרסו לגובה מלא */
+html, body, #root {
+  height: 100%;
+}
+
+/* שלא יהיה רקע כהה ולא ימרכז אוטומטית */
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #E6F7F5; /* אותו רקע של הלנדינג, או שתבחר צבע אחר */
+}
+
+/* שה-root יתפוס את כל הרוחב */
+#root {
+  width: 100%;
+  height: 100%;
+}

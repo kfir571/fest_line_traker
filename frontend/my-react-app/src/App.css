@@ -1,0 +1,158 @@
+/* רקע כללי של העמוד */
+.landing-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 16px;
+    box-sizing: border-box;
+
+    background-color: #E6F7F5;
+    /* ירקרק-רק בהיר ועדין */
+    color: #0F2C2C;
+    /* טקסט כהה רך */
+}
+
+/* קונטיינר הכפתורים של הימים */
+.days-buttons {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-right: 2.5%;
+}
+
+/* כפתור יום – שקוף עם בורדר ירקרק-רק */
+.button-select-day {
+    width: 44px;
+    /* גודל אחיד */
+    height: 44px;
+    /* גודל אחיד */
+    border-radius: 50%;
+    /* עיגול מושלם */
+
+    display: flex;
+    /* מרכז טקסט */
+    align-items: center;
+    justify-content: center;
+
+    background-color: transparent;
+    border: 2px solid #4FB6AC;
+    color: #0F2C2C;
+
+    /* font-size: 1.2rem; */
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+/* hover – מילוי עדין, עדיין אלגנטי */
+.button-select-day:hover {
+    background-color: rgba(79, 182, 172, 0.12);
+}
+
+/* מצב נבחר (נוסיף בהמשך ב־React, אבל כבר מכינים CSS) */
+
+.button-select-day.selected {
+    background-color: #4FB6AC;
+    color: white;
+}
+
+/* קופסת ההמלצה */
+.time-recommendation {
+    margin-top: 24px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background-color: white;
+    border: 1px solid rgba(79, 182, 172, 0.25);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.time-range {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    margin-bottom: 14px;
+}
+
+.time-range__label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding-right: 2.5%;
+    font-size: 0.95rem;
+    color: #0F2C2C;
+}
+
+.time-range__select {
+    background-color: transparent;
+    border: 1.5px solid #4FB6AC;
+    color: #0F2C2C;
+    padding: 10px 12px;
+    border-radius: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+.time-range__select:focus {
+    box-shadow: 0 0 0 3px rgba(79, 182, 172, 0.18);
+}
+
+.time-range__dash {
+    margin-top: 18px;
+    opacity: 0.7;
+}
+
+
+.chart-card {
+  margin-top: 18px;
+  background-color: white;
+  border: 1px solid rgba(79, 182, 172, 0.25);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0F2C2C;
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+.chart-container {
+  height: 260px; /* אפשר לשנות */
+}
+
+
+.recommendation-box {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background-color: white;
+  border: 1px solid rgba(79, 182, 172, 0.25);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  color: #0F2C2C;
+
+  text-align: right;   
+  direction: rtl;      
+}
+
+.recommendation-box.hint {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.recommendation-time {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
