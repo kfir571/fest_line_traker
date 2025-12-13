@@ -22,6 +22,12 @@ const days = [
     { id: 6, label: "ש" },
 ];
 
+function uiDayToApiDay(uiDay) {
+    // ui: 0=Sunday .. 6=Saturday
+    // api: 0=Monday .. 6=Sunday
+    return (uiDay + 6) % 7;
+}
+
 function LandingPage() {
     const [recStatus, setRecStatus] = useState("idle");  // "idle" | "loading" | "success" | "error"
     const [apiRespons, setApiRespons] = useState(null);
@@ -48,8 +54,10 @@ function LandingPage() {
         const fetchRecommendation = async () => {
             setRecStatus("loading");
             try {
-                const recommendation = await getRecommendation(selectedDay, fromHour, toHour);
-                setApiRespons(recommendation);
+                const apiWeekday = uiDayToApiDay(selectedDay);
+                const data = await getRecommendation(apiWeekday, fromHour, toHour);
+
+                setApiRespons(data);
                 setRecStatus("success");
             } catch (e) {
                 setApiRespons(`שגיאה: ${String(e)}`);
@@ -77,7 +85,7 @@ function LandingPage() {
 
             <RecommendationBox
                 status={recStatus}
-                recommendation={apiRespons} 
+                recommendation={apiRespons}
             />
 
             <PriceChart data={demoGraphData} />
