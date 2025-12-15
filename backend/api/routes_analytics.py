@@ -1,8 +1,8 @@
 # backend/api/routes_analytics.py
 
 from flask import Blueprint, jsonify, request
-from backend.api.db import get_db_connection
-from backend.collector.config import (
+from api.db import get_db_connection
+from collector.config import (
     WEEKDAY_NAMES_HE, 
     DEFAULT_FROM_HOUR, 
     DEFAULT_TO_HOUR, 
