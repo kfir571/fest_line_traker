@@ -1,5 +1,5 @@
 from flask import Flask
-from backend.api.routes_analytics import analytics_bp
+from api.routes_analytics import analytics_bp
 
 
 def create_app() -> Flask:
