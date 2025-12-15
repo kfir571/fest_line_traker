@@ -256,36 +256,47 @@ def recommendation():
 @analytics_bp.route("/hourly-graph", methods=["GET"])
 def hourly_graph():
     """
-    Returns a full day's time-series (hour + minute_bucket) for graph visualization.
-    Based on weekly_stats table.
+    Returns a time-series (hour + minute_bucket) for graph visualization
+    based on weekly_stats table.
 
     Query parameters:
         weekday (required): integer 0..6
-        from_hour (optional): default DEFAULT_FROM_HOUR
-        to_hour   (optional): default DEFAULT_TO_HOUR
+        from_hour (optional): default DEFAULT_FROM_HOUR (0..23)
+        to_hour   (optional): default DEFAULT_TO_HOUR   (1..24)
+            NOTE: to_hour is EXCLUSIVE (range is [from_hour:00, to_hour:00)).
         holiday_mode (optional): 'all' / 'holiday' / 'non_holiday'
     """
 
-    #Read parameters 
+    # Read parameters
     weekday = request.args.get("weekday", type=int)
     from_hour = request.args.get("from_hour", default=DEFAULT_FROM_HOUR, type=int)
     to_hour = request.args.get("to_hour", default=DEFAULT_TO_HOUR, type=int)
     holiday_mode = request.args.get("holiday_mode", default="all", type=str).lower().strip()
 
+    # Validate weekday
     if weekday is None or weekday < 0 or weekday > 6:
         return jsonify({"error": "weekday must be an integer between 0 and 6"}), 400
 
-    if from_hour < 0 or to_hour > 23 or from_hour > to_hour:
-        return jsonify({"error": "Invalid hour range"}), 400
+    # Validate hour range
+    # from_hour: 0..23
+    # to_hour:   1..24 (exclusive upper bound)
+    # require from_hour < to_hour
+    if (
+        from_hour < 0 or from_hour > 23
+        or to_hour < 1 or to_hour > 24
+        or from_hour >= to_hour
+    ):
+        return jsonify({"error": "Invalid hour range. from_hour must be 0..23, to_hour must be 1..24, and from_hour < to_hour."}), 400
 
-    #Holiday filter 
+    # Holiday filter
     holiday_filter = ""
     if holiday_mode == "holiday":
         holiday_filter = "AND is_holiday = TRUE"
     elif holiday_mode == "non_holiday":
         holiday_filter = "AND is_holiday = FALSE"
+    # 'all' => no filter
 
-    #SQL Query 
+    # SQL Query: filter by minutes since midnight, to_hour is EXCLUSIVE
     query = f"""
         SELECT
             hour,
@@ -297,7 +308,8 @@ def hourly_graph():
             days_count
         FROM weekly_stats
         WHERE weekday = %s
-          AND hour BETWEEN %s AND %s
+          AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60)
+          AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60)
           {holiday_filter}
         ORDER BY hour ASC, minute_bucket ASC;
     """
@@ -310,13 +322,16 @@ def hourly_graph():
     finally:
         conn.close()
 
-    #Format response 
+    # Format response
     graph_data = []
     for r in rows:
+        hour = int(r[0])
+        minute_bucket = int(r[1] or 0)
+
         graph_data.append({
-            "hour": r[0],
-            "minute_bucket": r[1],
-            "time_label": f"{int(r[0]):02d}:{int(r[1]):02d}",  # for front-end display
+            "hour": hour,
+            "minute_bucket": minute_bucket,
+            "time_label": f"{hour:02d}:{minute_bucket:02d}",  # front-end display
             "avg_price": float(r[2]) if r[2] is not None else None,
             "min_price": float(r[3]) if r[3] is not None else None,
             "max_price": float(r[4]) if r[4] is not None else None,
@@ -329,6 +344,7 @@ def hourly_graph():
         "weekday_name_he": WEEKDAY_NAMES_HE[weekday],
         "from_hour": from_hour,
         "to_hour": to_hour,
+        "to_hour_is_exclusive": True,
         "holiday_mode": holiday_mode,
         "data": graph_data
     })

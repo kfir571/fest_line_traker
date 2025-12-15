@@ -5,13 +5,9 @@ import TimeRangePicker from "../components/TimeRangePicker.jsx";
 import PriceChart from "../components/PriceChart.jsx";
 import RecommendationBox from "../components/RecommendationBox.jsx";
 import { getRecommendation } from "../api/recommendationApi";
+import { getHourlyGraph } from "../api/hourlyGraphApi";
+import GraphSection from "../components/GraphSection.jsx";
 
-const demoGraphData = [
-    { time: "06:00", price: 18 },
-    { time: "07:00", price: 15 },
-    { time: "08:00", price: 21 },
-    { time: "09:00", price: 17 },
-];
 const days = [
     { id: 0, label: "א" },
     { id: 1, label: "ב" },
@@ -29,15 +25,19 @@ function uiDayToApiDay(uiDay) {
 }
 
 function LandingPage() {
-    const [recStatus, setRecStatus] = useState("idle");  // "idle" | "loading" | "success" | "error"
+    const [recStatus, setRecStatus] = useState("idle"); // "idle" | "loading" | "success" | "error"
     const [apiRespons, setApiRespons] = useState(null);
+
+    const [graphStatus, setGraphStatus] = useState("idle"); // "idle" | "loading" | "success" | "error"
+    const [graphData, setGraphData] = useState([]); // [{time, price}]
+
     const [selectedDay, setSelectedDay] = useState(new Date().getDay());
     const [fromHour, setFromHour] = useState(6);
     const [toHour, setToHour] = useState(9);
 
     const hasInteractedRef = useRef(false);
 
-    const handleTimeChange = async (newFrom, newTo) => {
+    const handleTimeChange = (newFrom, newTo) => {
         hasInteractedRef.current = true;
         setFromHour(newFrom);
         setToHour(newTo);
@@ -49,46 +49,57 @@ function LandingPage() {
     };
 
     useEffect(() => {
-        if (!hasInteractedRef.current) return; // עדיין לא הייתה אינטראקציה
+        if (!hasInteractedRef.current) return;
 
-        const fetchRecommendation = async () => {
+        const fetchAll = async () => {
+            const apiWeekday = uiDayToApiDay(selectedDay);
+
             setRecStatus("loading");
-            try {
-                const apiWeekday = uiDayToApiDay(selectedDay);
-                const data = await getRecommendation(apiWeekday, fromHour, toHour);
+            setGraphStatus("loading");
 
-                setApiRespons(data);
+            try {
+                const [recData, graphRes] = await Promise.all([
+                    getRecommendation(apiWeekday, fromHour, toHour),
+                    getHourlyGraph(apiWeekday, fromHour, toHour),
+                ]);
+
+                // Recommendation
+                setApiRespons(recData);
                 setRecStatus("success");
+
+                // Graph normalize: backend -> recharts format
+                const normalized = (graphRes?.data ?? []).map((p) => ({
+                    time: p.time_label ?? `${String(p.hour).padStart(2, "0")}:${String(p.minute_bucket ?? 0).padStart(2, "0")}`,
+                    price: p.avg_price ?? null,
+                }));
+
+                setGraphData(normalized);
+                setGraphStatus("success");
             } catch (e) {
+                // Keep recommendation error consistent with existing UI
                 setApiRespons(`שגיאה: ${String(e)}`);
                 setRecStatus("error");
+
+                setGraphData([]);
+                setGraphStatus("error");
             }
         };
 
-        fetchRecommendation();
+        fetchAll();
     }, [selectedDay, fromHour, toHour]);
-
 
     return (
         <div className="landing-page">
-            <DayPicker
-                days={days}
-                selectedDay={selectedDay}
-                onChange={handleDayChange}
-            />
+            <DayPicker days={days} selectedDay={selectedDay} onChange={handleDayChange} />
 
-            <TimeRangePicker
-                fromHour={fromHour}
-                toHour={toHour}
-                onChange={handleTimeChange}
-            />
+            <TimeRangePicker fromHour={fromHour} toHour={toHour} onChange={handleTimeChange} />
 
-            <RecommendationBox
-                status={recStatus}
-                recommendation={apiRespons}
-            />
+            <RecommendationBox status={recStatus} recommendation={apiRespons} />
 
-            <PriceChart data={demoGraphData} />
+            <GraphSection status={graphStatus} data={graphData} />
+
         </div>
     );
-} export default LandingPage
+}
+
+export default LandingPage;
