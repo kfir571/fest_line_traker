@@ -2,10 +2,8 @@
 
 from flask import Blueprint, jsonify, request
 from api.db import get_db_connection
-from collector.config import (
+from config_api import (
     WEEKDAY_NAMES_HE, 
-    DEFAULT_FROM_HOUR, 
-    DEFAULT_TO_HOUR, 
     DEFAULT_MAX_RESULTS, 
     MIN_SAMPLE_COUNT_FOR_RECOMMENDATION
 )
@@ -108,8 +106,8 @@ def recommendation():
     based on aggregated data in weekly_stats.
 
     Query parameters:
-        from_hour (required): int, default DEFAULT_FROM_HOUR (e.g. 6)
-        to_hour   (required): int, default DEFAULT_TO_HOUR   (e.g. 22)
+        from_hour (required): int (e.g. 6)
+        to_hour   (required): int (e.g. 22)
             NOTE: to_hour is treated as an EXCLUSIVE upper bound (range is [from_hour:00, to_hour:00)).
         allowed_weekdays (required): comma-separated list of 0..6.
             Example: "0,1,2,3,4" (Mon-Fri).
