@@ -2,7 +2,7 @@
 
 from flask import Blueprint, jsonify, request
 from api.db import get_db_connection
-from config_api import (
+from .config_api import (
     WEEKDAY_NAMES_HE, 
     DEFAULT_MAX_RESULTS, 
     MIN_SAMPLE_COUNT_FOR_RECOMMENDATION
