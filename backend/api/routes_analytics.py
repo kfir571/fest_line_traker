@@ -22,7 +22,8 @@ def health():
 
 
 # ------------------------------------------------------------
-# 2) WEEKLY STATS — Main endpoint for weekly-day analytics
+# 2) WEEKLY STATS — Main endpoint for weekly-day analytics.
+# NOTE: Not used in MVP UI. Reserved for future analytics.
 # ------------------------------------------------------------
 @analytics_bp.route("/weekly-stats", methods=["GET"])
 def weekly_stats():
@@ -38,7 +39,7 @@ def weekly_stats():
     #Read and validate query parameters
     weekday = request.args.get("weekday", type=int)
     holiday_mode = request.args.get("holiday_mode", default="all", type=str)
-
+    print(f"{weekday=}")
     if weekday is None or weekday < 0 or weekday > 6:
         return jsonify({"error": "weekday parameter must be 0–6"}), 400
 
@@ -50,7 +51,7 @@ def weekly_stats():
         holiday_filter = "AND is_holiday = FALSE"
     # If holiday_mode == "all" -> no filter is added
 
-    #Step 3: Execute SQL query
+    #Execute SQL query
     query = f"""
         SELECT
             weekday,
@@ -107,10 +108,10 @@ def recommendation():
     based on aggregated data in weekly_stats.
 
     Query parameters:
-        from_hour (optional): int, default DEFAULT_FROM_HOUR (e.g. 6)
-        to_hour   (optional): int, default DEFAULT_TO_HOUR   (e.g. 22)
+        from_hour (required): int, default DEFAULT_FROM_HOUR (e.g. 6)
+        to_hour   (required): int, default DEFAULT_TO_HOUR   (e.g. 22)
             NOTE: to_hour is treated as an EXCLUSIVE upper bound (range is [from_hour:00, to_hour:00)).
-        allowed_weekdays (optional): comma-separated list of 0..6.
+        allowed_weekdays (required): comma-separated list of 0..6.
             Example: "0,1,2,3,4" (Mon-Fri).
             Default: all 0..6.
         holiday_mode (optional): 'all' / 'holiday' / 'non_holiday'
@@ -119,7 +120,7 @@ def recommendation():
             Default: DEFAULT_MAX_RESULTS (e.g. 3).
     """
 
-    # ----- Step 1: Read and validate query parameters -----
+    #Read and validate query parameters 
     from_hour = request.args.get("from_hour", type=int)
     to_hour = request.args.get("to_hour", type=int)
     max_results = request.args.get("max_results", type=int)
@@ -128,13 +129,18 @@ def recommendation():
 
     # Apply defaults if not provided
     if from_hour is None:
-        from_hour = DEFAULT_FROM_HOUR
+        return jsonify({"error": "from_hour is required"}), 400
     if to_hour is None:
-        to_hour = DEFAULT_TO_HOUR
+        return jsonify({"error": "to_hour is required"}), 400
     if max_results is None or max_results <= 0:
         max_results = DEFAULT_MAX_RESULTS
 
     holiday_mode = holiday_mode.lower().strip()
+
+    allowed_modes = {"all", "holiday", "non_holiday"}
+    if holiday_mode not in allowed_modes:
+        return jsonify({"error": "holiday_mode must be one of: all, holiday, non_holiday"}), 400
+
 
     # Validate hour range
     # from_hour: 0..23
@@ -158,14 +164,21 @@ def recommendation():
             ]
         except ValueError:
             return jsonify({"error": "allowed_weekdays must be a comma-separated list of integers 0..6."}), 400
+        
+        if not allowed_weekdays:
+            return jsonify({
+                "error": "allowed_weekdays must include at least one value (0..6)"
+            }), 400
     else:
-        allowed_weekdays = list(range(7))  # 0..6
+        return jsonify({"error": "allowed_weekdays is required"}), 400
+
+        
 
     # Validate weekday values
     if any(w < 0 or w > 6 for w in allowed_weekdays):
         return jsonify({"error": "allowed_weekdays values must be between 0 and 6."}), 400
 
-    # ----- Step 2: Build holiday filter -----
+    #Build holiday filter 
     holiday_filter = ""
     if holiday_mode == "holiday":
         holiday_filter = "AND is_holiday = TRUE"
@@ -173,7 +186,7 @@ def recommendation():
         holiday_filter = "AND is_holiday = FALSE"
     # 'all' → no filter
 
-    # ----- Step 3: Build and execute SQL query -----
+    #Build and execute SQL query
     # NOTE: to_hour is EXCLUSIVE. We filter by minutes since midnight:
     #   bucket_min = hour*60 + minute_bucket
     #   keep: from_hour*60 <= bucket_min < to_hour*60
@@ -214,10 +227,12 @@ def recommendation():
                 ),
             )
             rows = cur.fetchall()
+    except Exception:
+        return jsonify({"error": "database_error"}), 500
     finally:
         conn.close()
 
-    # ----- Step 4: Convert rows to result list -----
+    #Convert rows to result list 
     results = []
     for idx, r in enumerate(rows, start=1):
         w = r[0]
@@ -236,18 +251,18 @@ def recommendation():
             "holiday_sector": r[9],
         })
 
-    # ----- Step 5: Build constraints object for the response -----
+    #Build constraints object for the response
     constraints = {
         "from_hour": from_hour,
         "to_hour": to_hour,
-        "allowed_weekdays": allowed_weekdays,
+        "allowed_weekdays": sorted(set(allowed_weekdays)),
         "holiday_mode": holiday_mode,
         "max_results": max_results,
         "min_sample_count": MIN_SAMPLE_COUNT_FOR_RECOMMENDATION,
         "to_hour_is_exclusive": True,
     }
 
-    # ----- Step 6: Return final JSON -----
+    #Step 6: Return final JSON
     return jsonify({
         "constraints": constraints,
         "results": results,
@@ -261,42 +276,53 @@ def hourly_graph():
 
     Query parameters:
         weekday (required): integer 0..6
-        from_hour (optional): default DEFAULT_FROM_HOUR (0..23)
-        to_hour   (optional): default DEFAULT_TO_HOUR   (1..24)
-            NOTE: to_hour is EXCLUSIVE (range is [from_hour:00, to_hour:00)).
-        holiday_mode (optional): 'all' / 'holiday' / 'non_holiday'
+        from_hour (required): int 0..23
+        to_hour (required): int 1..24 (EXCLUSIVE upper bound)
+        holiday_mode (optional): 'all' / 'holiday' / 'non_holiday' (default: 'all')
     """
 
-    # Read parameters
+    #Read parameters 
     weekday = request.args.get("weekday", type=int)
-    from_hour = request.args.get("from_hour", default=DEFAULT_FROM_HOUR, type=int)
-    to_hour = request.args.get("to_hour", default=DEFAULT_TO_HOUR, type=int)
+    from_hour = request.args.get("from_hour", type=int)
+    to_hour = request.args.get("to_hour", type=int)
     holiday_mode = request.args.get("holiday_mode", default="all", type=str).lower().strip()
 
-    # Validate weekday
-    if weekday is None or weekday < 0 or weekday > 6:
+    #Validate required params 
+    if weekday is None:
+        return jsonify({"error": "weekday is required"}), 400
+    if from_hour is None:
+        return jsonify({"error": "from_hour is required"}), 400
+    if to_hour is None:
+        return jsonify({"error": "to_hour is required"}), 400
+
+    # Validate weekday range
+    if weekday < 0 or weekday > 6:
         return jsonify({"error": "weekday must be an integer between 0 and 6"}), 400
 
+    # Validate holiday_mode
+    allowed_modes = {"all", "holiday", "non_holiday"}
+    if holiday_mode not in allowed_modes:
+        return jsonify({"error": "holiday_mode must be one of: all, holiday, non_holiday"}), 400
+
     # Validate hour range
-    # from_hour: 0..23
-    # to_hour:   1..24 (exclusive upper bound)
-    # require from_hour < to_hour
     if (
         from_hour < 0 or from_hour > 23
         or to_hour < 1 or to_hour > 24
         or from_hour >= to_hour
     ):
-        return jsonify({"error": "Invalid hour range. from_hour must be 0..23, to_hour must be 1..24, and from_hour < to_hour."}), 400
+        return jsonify({
+            "error": "Invalid hour range (from_hour/to_hour). "
+                     "from_hour must be 0..23, to_hour must be 1..24, and from_hour < to_hour."
+        }), 400
 
-    # Holiday filter
+    #Build holiday filter 
     holiday_filter = ""
     if holiday_mode == "holiday":
         holiday_filter = "AND is_holiday = TRUE"
     elif holiday_mode == "non_holiday":
         holiday_filter = "AND is_holiday = FALSE"
-    # 'all' => no filter
 
-    # SQL Query: filter by minutes since midnight, to_hour is EXCLUSIVE
+    #Execute SQL 
     query = f"""
         SELECT
             hour,
@@ -319,19 +345,20 @@ def hourly_graph():
         with conn.cursor() as cur:
             cur.execute(query, (weekday, from_hour, to_hour))
             rows = cur.fetchall()
+    except Exception:
+        return jsonify({"error": "database_error"}), 500
     finally:
         conn.close()
 
-    # Format response
+    #Format response
     graph_data = []
     for r in rows:
         hour = int(r[0])
         minute_bucket = int(r[1] or 0)
-
         graph_data.append({
             "hour": hour,
             "minute_bucket": minute_bucket,
-            "time_label": f"{hour:02d}:{minute_bucket:02d}",  # front-end display
+            "time_label": f"{hour:02d}:{minute_bucket:02d}",
             "avg_price": float(r[2]) if r[2] is not None else None,
             "min_price": float(r[3]) if r[3] is not None else None,
             "max_price": float(r[4]) if r[4] is not None else None,

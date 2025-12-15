@@ -57,33 +57,37 @@ function LandingPage() {
             setRecStatus("loading");
             setGraphStatus("loading");
 
-            try {
-                const [recData, graphRes] = await Promise.all([
-                    getRecommendation(apiWeekday, fromHour, toHour),
-                    getHourlyGraph(apiWeekday, fromHour, toHour),
-                ]);
+            const [recRes, graphRes] = await Promise.allSettled([
+                getRecommendation(apiWeekday, fromHour, toHour),
+                getHourlyGraph(apiWeekday, fromHour, toHour),
+            ]);
 
-                // Recommendation
-                setApiRespons(recData);
+            // Recommendation
+            if (recRes.status === "fulfilled") {
+                setApiRespons(recRes.value);
                 setRecStatus("success");
+            } else {
+                setApiRespons(`שגיאה: ${String(recRes.reason)}`);
+                setRecStatus("error");
+            }
 
-                // Graph normalize: backend -> recharts format
-                const normalized = (graphRes?.data ?? []).map((p) => ({
-                    time: p.time_label ?? `${String(p.hour).padStart(2, "0")}:${String(p.minute_bucket ?? 0).padStart(2, "0")}`,
+            // Graph
+            if (graphRes.status === "fulfilled") {
+                const normalized = (graphRes.value?.data ?? []).map((p) => ({
+                    time:
+                        p.time_label ??
+                        `${String(p.hour).padStart(2, "0")}:${String(p.minute_bucket ?? 0).padStart(2, "0")}`,
                     price: p.avg_price ?? null,
                 }));
 
                 setGraphData(normalized);
                 setGraphStatus("success");
-            } catch (e) {
-                // Keep recommendation error consistent with existing UI
-                setApiRespons(`שגיאה: ${String(e)}`);
-                setRecStatus("error");
-
+            } else {
                 setGraphData([]);
                 setGraphStatus("error");
             }
         };
+
 
         fetchAll();
     }, [selectedDay, fromHour, toHour]);
