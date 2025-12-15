@@ -8,3 +8,4 @@ urllib3==2.5.0
 holidays>=0.50
 Flask
 flask-cors
+gunicorn==21.2.0
