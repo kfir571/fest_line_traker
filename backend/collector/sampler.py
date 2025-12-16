@@ -1,5 +1,5 @@
 # backend/collector_job/sampler.py
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, Tuple
 import json
 import requests

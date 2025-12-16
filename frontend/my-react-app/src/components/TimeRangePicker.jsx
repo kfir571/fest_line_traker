@@ -6,13 +6,19 @@ function TimeRangePicker({ fromHour, toHour, onChange }) {
     const handleFromChange = (e) => {
         const newFrom = Number(e.target.value);
         const fixedTo = Math.max(toHour, newFrom + 1); // מבטיח from < to
-        onChange(newFrom, fixedTo);
+
+        if (newFrom !== fromHour || fixedTo !== toHour) {
+            onChange(newFrom, fixedTo);
+        }
     };
 
     const handleToChange = (e) => {
         const newTo = Number(e.target.value);
         const fixedFrom = Math.min(fromHour, newTo - 1); // מבטיח from < to
-        onChange(fixedFrom, newTo);
+
+        if (fixedFrom !== fromHour || newTo !== toHour) {
+            onChange(fixedFrom, newTo);
+        }
     };
 
     const fmt = (h) => `${String(h).padStart(2, "0")}:00`;

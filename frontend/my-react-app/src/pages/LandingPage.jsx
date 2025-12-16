@@ -88,8 +88,11 @@ function LandingPage() {
             }
         };
 
+        const timer = setTimeout(() => {
+            fetchAll();
+        }, 300)
 
-        fetchAll();
+        return () => clearTimeout(timer);
     }, [selectedDay, fromHour, toHour]);
 
     return (
