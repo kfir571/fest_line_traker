@@ -67,7 +67,11 @@ This project requires private API credentials:
 
 ## 📸 Preview
 
-<img src="screenshots/live_site.png" width="100%" >
+<img 
+  src="screenshots/live_site.png" 
+  width="100%" 
+  style="border-radius: 16px;"
+/>
 
 ---
 
