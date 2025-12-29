@@ -3,7 +3,7 @@
 
 An intelligent pricing analysis tool that helps users optimize their travel costs by identifying the most cost-effective times to use the Fastlane toll road service.
 
-**🌐 Live Application**: [Live Application](https://fest-line-traker.netlify.app/)
+**🌐 Live Application**: [Fest Line Traker](https://fest-line-traker.netlify.app/)
 
 ---
 
