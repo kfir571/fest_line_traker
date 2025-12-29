@@ -12,7 +12,7 @@ An intelligent pricing analysis tool that helps users optimize their travel cost
 | Feature | Description |
 |---------|-------------|
 | 📅 Day Selection | Choose any day of the week |
-| ⏰ Time Range | Custom hour ranges (6 AM - 10 PM) |
+| ⏰ Time Range | Custom hour ranges |
 | 💡 Smart Recommendations | Algorithm finds cheapest slots |
 | 📊 Visual Analytics | Interactive price charts |
 | 📱 Responsive Design | Works on all devices |
@@ -67,7 +67,7 @@ This project requires private API credentials:
 
 ## 📸 Preview
 
-<img src="screenshots/live_site.png" width="250" height="400">
+<img src="screenshots/live_site.png" width="50%" >
 
 ---
 
