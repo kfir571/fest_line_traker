@@ -24,7 +24,7 @@ An intelligent pricing analysis tool that helps users optimize their travel cost
 ```
 ┌─────────────┐         ┌──────────────┐         ┌─────────────────┐
 │   React     │ ──HTTP──│  Flask API   │ ──SQL── │  PostgreSQL     │
-│  (Netlify)  │         │  (Railway)   │         │  (Console Neon) │
+│  (Netlify)  │         │  (Railway)   │         │  (Neon Console) │
 └─────────────┘         └──────────────┘         └─────────────────┘
 ```
 
