@@ -70,7 +70,7 @@ This project requires private API credentials:
 <img 
   src="screenshots/live_site.png" 
   width="100%" 
-  style="border-radius: 16px;"
+  style="border-radius: 32px;"
 />
 
 ---
