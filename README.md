@@ -1,14 +1,9 @@
 # Fastlane Price Tracker
-
-[![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://app.netlify.com/sites/fest-line-traker/deploys)
-
-> Smart price recommendations for Fastlane toll road service
-
 ## 🎯 Overview
 
 An intelligent pricing analysis tool that helps users optimize their travel costs by identifying the most cost-effective times to use the Fastlane toll road service.
 
-**🌐 Live Application**: [https://fest-line-traker.netlify.app/](https://fest-line-traker.netlify.app/)
+**🌐 Live Application**: [Live Application](https://fest-line-traker.netlify.app/)
 
 ---
 
@@ -72,7 +67,7 @@ This project requires private API credentials:
 
 ## 📸 Preview
 
-![Price Chart Example](<td><img src="screenshots/live_site.png" width="250" height="400"></td>)
+(<td><img src="screenshots/live_site.png" width="250" height="400"></td>)
 
 ---
 
