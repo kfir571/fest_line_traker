@@ -158,6 +158,28 @@
   opacity: 0.7;
 }
 
+.recommendation-box.error {
+  background-color: #FDECEC;
+  border: 1px solid #E57373;
+  color: #B3261E;
+}
+
+.recommendation-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.recommendation-main {
+  margin-top: 4px;
+  font-size: 1rem;
+}
+
+.recommendation-sub {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
 @media (max-width: 768px) {
   .chart-container {
     height: 200px; /* Shorter on mobile */
