@@ -143,16 +143,21 @@ def recommendation():
     # Validate hour range
     # from_hour: 0..23
     # to_hour:   1..24  (exclusive upper bound)
-    # require from_hour < to_hour
+    # from_hour == to_hour is always invalid (not treated as a 24h range).
+    # from_hour > to_hour is a valid overnight range that crosses into the next weekday.
+    # to_hour == 24 always means "end of the same day" and can never be an overnight case,
+    # since from_hour's max (23) is always < 24.
     if (
         from_hour < 0 or from_hour > 23
         or to_hour < 1 or to_hour > 24
-        or from_hour >= to_hour
+        or from_hour == to_hour
     ):
         return jsonify({
             "error": "Invalid hour range (from_hour/to_hour). "
-                     "from_hour must be 0..23, to_hour must be 1..24, and from_hour < to_hour."
+                     "from_hour must be 0..23, to_hour must be 1..24, and from_hour must not equal to_hour."
         }), 400
+
+    is_overnight = from_hour > to_hour
 
     # Parse allowed_weekdays (comma-separated list) or use all 0..6
     if allowed_weekdays_param:
@@ -188,42 +193,81 @@ def recommendation():
     # NOTE: to_hour is EXCLUSIVE. We filter by minutes since midnight:
     #   bucket_min = hour*60 + minute_bucket
     #   keep: from_hour*60 <= bucket_min < to_hour*60
-    query = f"""
-        SELECT
-            weekday,
-            hour,
-            minute_bucket,
-            avg_price,
-            min_price,
-            max_price,
-            sample_count,
-            days_count,
-            is_holiday,
-            holiday_sector
-        FROM weekly_stats
-        WHERE
-            weekday = ANY(%s)
-            AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60)
-            AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60)
-            AND sample_count >= %s
-            {holiday_filter}
-        ORDER BY avg_price ASC, hour ASC, minute_bucket ASC
-        LIMIT %s;
-    """
+    #
+    # Overnight ranges (from_hour > to_hour) span two segments per selected weekday:
+    #   - the selected weekday itself, from from_hour to end of day
+    #   - the following weekday ((w+1) % 7 for each selected w), from start of day to to_hour
+    # Both segments are matched in one query so ranking/LIMIT stay in SQL over the combined
+    # row set — no separate queries or Python-side merging.
+    if is_overnight:
+        next_weekdays = [(w + 1) % 7 for w in allowed_weekdays]
+        query = f"""
+            SELECT
+                weekday,
+                hour,
+                minute_bucket,
+                avg_price,
+                min_price,
+                max_price,
+                sample_count,
+                days_count,
+                is_holiday,
+                holiday_sector
+            FROM weekly_stats
+            WHERE
+                (
+                    (weekday = ANY(%s) AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60))
+                    OR
+                    (weekday = ANY(%s) AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60))
+                )
+                AND sample_count >= %s
+                {holiday_filter}
+            ORDER BY avg_price ASC, hour ASC, minute_bucket ASC
+            LIMIT %s;
+        """
+        params = (
+            allowed_weekdays,
+            from_hour,
+            next_weekdays,
+            to_hour,
+            MIN_SAMPLE_COUNT_FOR_RECOMMENDATION,
+            max_results,
+        )
+    else:
+        query = f"""
+            SELECT
+                weekday,
+                hour,
+                minute_bucket,
+                avg_price,
+                min_price,
+                max_price,
+                sample_count,
+                days_count,
+                is_holiday,
+                holiday_sector
+            FROM weekly_stats
+            WHERE
+                weekday = ANY(%s)
+                AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60)
+                AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60)
+                AND sample_count >= %s
+                {holiday_filter}
+            ORDER BY avg_price ASC, hour ASC, minute_bucket ASC
+            LIMIT %s;
+        """
+        params = (
+            allowed_weekdays,
+            from_hour,
+            to_hour,
+            MIN_SAMPLE_COUNT_FOR_RECOMMENDATION,
+            max_results,
+        )
 
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                query,
-                (
-                    allowed_weekdays,
-                    from_hour,
-                    to_hour,
-                    MIN_SAMPLE_COUNT_FOR_RECOMMENDATION,
-                    max_results,
-                ),
-            )
+            cur.execute(query, params)
             rows = cur.fetchall()
     except Exception:
         return jsonify({"error": "database_error"}), 500
@@ -303,45 +347,83 @@ def hourly_graph():
         return jsonify({"error": "holiday_mode must be one of: all, holiday, non_holiday"}), 400
 
     # Validate hour range
+    # from_hour == to_hour is always invalid (not treated as a 24h range).
+    # from_hour > to_hour is a valid overnight range that crosses into the next weekday
+    # ((weekday + 1) % 7). to_hour == 24 always means "end of the same day" and can never
+    # be an overnight case, since from_hour's max (23) is always < 24.
     if (
         from_hour < 0 or from_hour > 23
         or to_hour < 1 or to_hour > 24
-        or from_hour >= to_hour
+        or from_hour == to_hour
     ):
         return jsonify({
             "error": "Invalid hour range (from_hour/to_hour). "
-                     "from_hour must be 0..23, to_hour must be 1..24, and from_hour < to_hour."
+                     "from_hour must be 0..23, to_hour must be 1..24, and from_hour must not equal to_hour."
         }), 400
 
-    #Build holiday filter 
+    is_overnight = from_hour > to_hour
+
+    #Build holiday filter
     holiday_filter = ""
     if holiday_mode == "holiday":
         holiday_filter = "AND is_holiday = TRUE"
     elif holiday_mode == "non_holiday":
         holiday_filter = "AND is_holiday = FALSE"
 
-    #Execute SQL 
-    query = f"""
-        SELECT
-            hour,
-            minute_bucket,
-            avg_price,
-            min_price,
-            max_price,
-            sample_count,
-            days_count
-        FROM weekly_stats
-        WHERE weekday = %s
-          AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60)
-          AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60)
-          {holiday_filter}
-        ORDER BY hour ASC, minute_bucket ASC;
-    """
+    #Execute SQL
+    # Overnight ranges (from_hour > to_hour) span two segments: the selected weekday from
+    # from_hour to end of day, then the following weekday ((weekday + 1) % 7) from start of
+    # day to to_hour. The CASE in ORDER BY keeps the first segment before the second so
+    # results stay chronological across the day boundary — plain "hour ASC" would otherwise
+    # sort the next day's 00:xx rows before the current day's 22:xx rows.
+    if is_overnight:
+        next_weekday = (weekday + 1) % 7
+        query = f"""
+            SELECT
+                hour,
+                minute_bucket,
+                avg_price,
+                min_price,
+                max_price,
+                sample_count,
+                days_count
+            FROM weekly_stats
+            WHERE
+                (
+                    (weekday = %s AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60))
+                    OR
+                    (weekday = %s AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60))
+                )
+                {holiday_filter}
+            ORDER BY
+                CASE WHEN weekday = %s THEN 0 ELSE 1 END,
+                hour ASC,
+                minute_bucket ASC;
+        """
+        params = (weekday, from_hour, next_weekday, to_hour, weekday)
+    else:
+        query = f"""
+            SELECT
+                hour,
+                minute_bucket,
+                avg_price,
+                min_price,
+                max_price,
+                sample_count,
+                days_count
+            FROM weekly_stats
+            WHERE weekday = %s
+              AND ((hour * 60) + COALESCE(minute_bucket, 0)) >= (%s * 60)
+              AND ((hour * 60) + COALESCE(minute_bucket, 0)) <  (%s * 60)
+              {holiday_filter}
+            ORDER BY hour ASC, minute_bucket ASC;
+        """
+        params = (weekday, from_hour, to_hour)
 
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute(query, (weekday, from_hour, to_hour))
+            cur.execute(query, params)
             rows = cur.fetchall()
     except Exception:
         return jsonify({"error": "database_error"}), 500
