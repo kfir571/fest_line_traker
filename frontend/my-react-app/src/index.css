@@ -1,23 +1,88 @@
-/* איפוס בסיסי */
+/* ==========================================================================
+   Design tokens
+   ========================================================================== */
+:root {
+  /* brand */
+  --color-primary: #4FB6AC;
+  --color-primary-dark: #3A948C;
+  --color-primary-100: #DFF3F1;
+  --color-primary-50: #F2FBFA;
+  --color-primary-border: rgba(79, 182, 172, 0.25);
+
+  /* neutrals */
+  --color-bg: #E6F7F5;
+  --color-surface: #FFFFFF;
+  --color-text: #0F2C2C;
+  --color-text-muted: #4B6B69;
+  --color-border: rgba(15, 44, 44, 0.08);
+
+  /* status */
+  --color-success: #16a34a;
+  --color-success-bg: #EAFBF1;
+  --color-success-border: #86D9A6;
+  --color-warning: #B7791F;
+  --color-warning-bg: #FEF3DC;
+  --color-warning-border: #F0C36D;
+  --color-error: #B3261E;
+  --color-error-bg: #FDECEC;
+  --color-error-border: #E57373;
+
+  /* typography */
+  --font-family-base: "Heebo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-size-xs: 0.8rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-md: 1.05rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 600;
+  --font-weight-bold: 700;
+
+  /* spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* radius: two-tier system — md for controls, lg for containers */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* shadow */
+  --shadow-sm: 0 2px 6px rgba(15, 44, 44, 0.06);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px rgba(15, 44, 44, 0.14);
+
+  --content-max-width: 640px;
+}
+
+/* ==========================================================================
+   Base reset
+   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* שכולם יתפרסו לגובה מלא */
 html, body, #root {
   height: 100%;
 }
 
-/* שלא יהיה רקע כהה ולא ימרכז אוטומטית */
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background-color: #E6F7F5; /* אותו רקע של הלנדינג, או שתבחר צבע אחר */
+  font-family: var(--font-family-base);
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
-/* שה-root יתפוס את כל הרוחב */
 #root {
   width: 100%;
   height: 100%;

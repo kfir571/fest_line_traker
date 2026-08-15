@@ -7,15 +7,16 @@ import RecommendationBox from "../components/RecommendationBox.jsx";
 import { getRecommendation } from "../api/recommendationApi";
 import { getHourlyGraph } from "../api/hourlyGraphApi";
 import GraphSection from "../components/GraphSection.jsx";
+import { formatTimeLabel } from "../utils/format.js";
 
 const days = [
-    { id: 0, label: "א" },
-    { id: 1, label: "ב" },
-    { id: 2, label: "ג" },
-    { id: 3, label: "ד" },
-    { id: 4, label: "ה" },
-    { id: 5, label: "ו" },
-    { id: 6, label: "ש" },
+    { id: 0, label: "א", fullLabel: "יום ראשון" },
+    { id: 1, label: "ב", fullLabel: "יום שני" },
+    { id: 2, label: "ג", fullLabel: "יום שלישי" },
+    { id: 3, label: "ד", fullLabel: "יום רביעי" },
+    { id: 4, label: "ה", fullLabel: "יום חמישי" },
+    { id: 5, label: "ו", fullLabel: "יום שישי" },
+    { id: 6, label: "ש", fullLabel: "יום שבת" },
 ];
 
 function uiDayToApiDay(uiDay) {
@@ -74,9 +75,7 @@ function LandingPage() {
             // Graph
             if (graphRes.status === "fulfilled") {
                 const normalized = (graphRes.value?.data ?? []).map((p) => ({
-                    time:
-                        p.time_label ??
-                        `${String(p.hour).padStart(2, "0")}:${String(p.minute_bucket ?? 0).padStart(2, "0")}`,
+                    time: p.time_label ?? formatTimeLabel(p.hour, p.minute_bucket ?? 0),
                     price: p.avg_price ?? null,
                 }));
 

@@ -1,37 +1,38 @@
 import "../App.css";
 import PriceChart from "./PriceChart.jsx";
+import StatusMessage from "./StatusMessage.jsx";
 
 function GraphSection({ status, data }) {
     if (status === "idle") {
         return (
-            <div className="recommendation-box hint">
+            <StatusMessage variant="idle">
                 בחר יום וטווח שעות כדי להציג גרף
-            </div>
+            </StatusMessage>
         );
     }
 
     if (status === "loading") {
         return (
-            <div className="recommendation-box hint">
+            <StatusMessage variant="loading">
                 טוען גרף...
-            </div>
+            </StatusMessage>
         );
     }
 
     if (status === "error") {
         return (
-            <div className="recommendation-box error">
+            <StatusMessage variant="error">
                 שגיאה: לא התקבלה תשובה מהשרת עבור הגרף.
-            </div>
+            </StatusMessage>
         );
     }
 
     // success
     if (!Array.isArray(data) || data.length === 0) {
         return (
-            <div className="recommendation-box error">
-                אין נתונים זמינים לגרף בטווח שבחרת.
-            </div>
+            <StatusMessage variant="empty">
+                אין נתונים להצגה בגרף עבור הטווח שנבחר — נסה טווח אחר.
+            </StatusMessage>
         );
     }
 
