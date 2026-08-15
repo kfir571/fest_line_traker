@@ -1,5 +1,6 @@
 import "../App.css";
 import StatusMessage from "./StatusMessage.jsx";
+import ChevronIcon from "./ChevronIcon.jsx";
 import { pad2 } from "../utils/format.js";
 
 function RecommendationBox({ status, recommendation }) {
@@ -45,14 +46,15 @@ function RecommendationBox({ status, recommendation }) {
   const mm = pad2(best.minute_bucket ?? 0);
 
   return (
-    <div className="card">
-      <div className="recommendation-title">המלצה</div>
-      <div className="recommendation-main">
-        השעה המומלצת ביותר: <strong>{hh}:{mm}</strong>
+    <div className="recommendation-panel">
+      <div className="recommendation-panel__label">המלצה</div>
+      <div className="recommendation-panel__hero">
+        <ChevronIcon className="recommendation-panel__icon" />
+        <span>{hh}:{mm}</span>
       </div>
-      <div className="recommendation-sub">
-        מחיר ממוצע: {best.avg_price} ₪ | דגימות: {best.sample_count}
-      </div>
+      <div className="recommendation-panel__caption">השעה המשתלמת ביותר לנסיעה</div>
+      <div className="recommendation-panel__price">מחיר ממוצע: {best.avg_price} ₪</div>
+      <div className="recommendation-panel__meta">מבוסס על {best.sample_count} דגימות</div>
     </div>
   );
 }

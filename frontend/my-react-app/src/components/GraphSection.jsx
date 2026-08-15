@@ -2,7 +2,7 @@ import "../App.css";
 import PriceChart from "./PriceChart.jsx";
 import StatusMessage from "./StatusMessage.jsx";
 
-function GraphSection({ status, data }) {
+function GraphSection({ status, data, fromHour, toHour }) {
     if (status === "idle") {
         return (
             <StatusMessage variant="idle">
@@ -36,7 +36,7 @@ function GraphSection({ status, data }) {
         );
     }
 
-    return <PriceChart data={data} />;
+    return <PriceChart data={data} fromHour={fromHour} toHour={toHour} />;
 }
 
 export default GraphSection;

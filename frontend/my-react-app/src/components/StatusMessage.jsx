@@ -7,6 +7,7 @@ function StatusMessage({ variant, children }) {
       role="status"
       aria-live="polite"
     >
+      {variant === "loading" && <span className="status-message__bar" aria-hidden="true" />}
       {children}
     </div>
   );

@@ -7,6 +7,7 @@ import RecommendationBox from "../components/RecommendationBox.jsx";
 import { getRecommendation } from "../api/recommendationApi";
 import { getHourlyGraph } from "../api/hourlyGraphApi";
 import GraphSection from "../components/GraphSection.jsx";
+import ChevronIcon from "../components/ChevronIcon.jsx";
 import { formatTimeLabel } from "../utils/format.js";
 
 const days = [
@@ -96,13 +97,21 @@ function LandingPage() {
 
     return (
         <div className="landing-page">
+            <header className="app-header">
+                <div className="app-header__brand">
+                    <ChevronIcon className="app-header__mark" />
+                    <span>מעקב מחיר הנתיב המהיר</span>
+                </div>
+                <p className="app-header__tagline">מצא את השעה המשתלמת ביותר לנסיעה</p>
+            </header>
+
             <DayPicker days={days} selectedDay={selectedDay} onChange={handleDayChange} />
 
             <TimeRangePicker fromHour={fromHour} toHour={toHour} onChange={handleTimeChange} />
 
             <RecommendationBox status={recStatus} recommendation={apiRespons} />
 
-            <GraphSection status={graphStatus} data={graphData} />
+            <GraphSection status={graphStatus} data={graphData} fromHour={fromHour} toHour={toHour} />
 
         </div>
     );

@@ -8,6 +8,46 @@
   padding: var(--space-4);
   background-color: var(--color-bg);
   color: var(--color-text);
+  /* Page-level safeguard: this screen's content is fluid-width by design
+     (clamp()/%-based), so no child should ever need to exceed the viewport,
+     but clip here as a backstop against edge cases (long unbroken strings,
+     sub-pixel rounding) rather than relying on that always holding true.
+     Scoped to .landing-page only — not html/body — so it doesn't affect any
+     other page. Vertical scrolling is untouched. */
+  overflow-x: clip;
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.app-header__mark {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.app-header__tagline {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 /* ==========================================================================
@@ -32,30 +72,30 @@
   justify-content: center;
 
   background-color: transparent;
-  border: 2px solid var(--color-primary);
-  color: var(--color-text);
+  border: none;
+  color: var(--color-text-muted);
 
   font-weight: var(--font-weight-medium);
   font-size: clamp(0.85rem, 3vw, 1rem);
   cursor: pointer;
 
   transition: background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    color 0.2s ease;
 }
 
 .button-select-day:hover {
-  background-color: var(--color-primary-100);
+  background-color: var(--color-primary-tint);
+  color: var(--color-text);
 }
 
 .button-select-day.selected {
   background-color: var(--color-primary);
-  border-color: var(--color-primary-dark);
   color: white;
+  font-weight: var(--font-weight-bold);
 }
 
 .button-select-day:focus-visible {
-  outline: 3px solid var(--color-primary-100);
+  outline: 2px solid var(--color-secondary);
   outline-offset: 2px;
 }
 
@@ -84,7 +124,7 @@
 
 .time-range__select {
   background-color: var(--color-surface);
-  border: 1.5px solid var(--color-primary);
+  border: 1px solid var(--color-border);
   color: var(--color-text);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
@@ -95,33 +135,39 @@
 }
 
 .time-range__select:focus-visible {
-  box-shadow: 0 0 0 3px var(--color-primary-100);
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px var(--color-secondary-tint);
 }
 
-.time-range__dash {
+.time-range__chevron {
+  width: 16px;
+  height: 16px;
   margin-top: var(--space-4);
-  opacity: 0.7;
   color: var(--color-text-muted);
+  transform: scaleX(-1);
 }
 
 /* ==========================================================================
-   Card primitive — shared by the recommendation box and the chart card
+   Card primitive — shared by the chart card
    ========================================================================== */
 .card {
   margin-top: var(--space-5);
   min-width: 0;
   padding: var(--space-4);
   background-color: var(--color-surface);
-  border: 1px solid var(--color-primary-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   color: var(--color-text);
+  overflow-wrap: break-word;
 }
 
 /* ==========================================================================
    Status message — idle / loading / error / empty states
    ========================================================================== */
 .status-message {
+  position: relative;
+  overflow: hidden;
   margin-top: var(--space-5);
   padding: var(--space-4);
   border-radius: var(--radius-lg);
@@ -134,6 +180,9 @@
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text-muted);
+}
+
+.status-message--idle {
   font-style: italic;
 }
 
@@ -149,27 +198,79 @@
   color: var(--color-warning);
 }
 
+.status-message__bar {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: 3px;
+  width: 40%;
+  background-color: var(--color-primary);
+  animation: route-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes route-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-message__bar {
+    animation: none;
+    width: 100%;
+    opacity: 0.35;
+  }
+}
+
 /* ==========================================================================
-   Recommendation
+   Recommendation panel — the signature highway-sign moment
    ========================================================================== */
-.recommendation-title {
-  font-weight: var(--font-weight-bold);
+.recommendation-panel {
+  margin-top: var(--space-5);
+  padding: var(--space-6) var(--space-5);
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow-wrap: break-word;
+}
+
+.recommendation-panel__label {
+  font-size: var(--font-size-sm);
+  opacity: 0.85;
+}
+
+.recommendation-panel__hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-family: var(--font-family-display);
+  font-size: clamp(2.25rem, 9vw, 3rem);
+  line-height: 1;
+}
+
+.recommendation-panel__icon {
+  width: 0.55em;
+  height: 0.55em;
+  flex-shrink: 0;
+}
+
+.recommendation-panel__caption {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-base);
+  opacity: 0.9;
+}
+
+.recommendation-panel__price {
+  margin-top: var(--space-4);
   font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
 }
 
-.recommendation-main {
-  margin-top: var(--space-1);
-  font-size: var(--font-size-md);
-}
-
-.recommendation-main strong {
-  color: var(--color-primary-dark);
-}
-
-.recommendation-sub {
+.recommendation-panel__meta {
   margin-top: var(--space-1);
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  opacity: 0.8;
 }
 
 /* ==========================================================================
@@ -178,12 +279,37 @@
 .chart-title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
+}
+
+.chart-subtitle {
+  margin-top: var(--space-1);
   margin-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .chart-container {
   height: 200px;
   position: relative;
+}
+
+/* Recharts renders its root SVG with tabIndex=0/role="application" for
+   keyboard data exploration (accessibility layer), AND — separately —
+   programmatically focuses an inner, unclassed <g tabindex="-1"> layer
+   whenever a line/point is clicked, for its own accessibility announcement.
+   Neither has a mouse-vs-keyboard focus heuristic of its own, so a plain
+   click on the surface or on the line/dots triggers the browser's default
+   focus ring on whichever of the two received focus. Keep the ring for
+   keyboard users via :focus-visible, but not for mouse clicks, on both. */
+.recharts-surface:focus,
+.recharts-surface :focus {
+  outline: none;
+}
+
+.recharts-surface:focus-visible,
+.recharts-surface :focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
 }
 
 /* ==========================================================================
@@ -205,8 +331,9 @@
     height: 260px;
   }
 
-  .card {
-    padding: var(--space-4) var(--space-5);
+  .card,
+  .recommendation-panel {
+    padding: var(--space-5) var(--space-6);
   }
 }
 
