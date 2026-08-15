@@ -1,174 +1,346 @@
-/* רקע כללי של העמוד */
+/* ==========================================================================
+   Layout
+   ========================================================================== */
 .landing-page {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    min-height: 100vh;
-    padding: 16px;
-    box-sizing: border-box;
-
-    background-color: #E6F7F5;
-    /* ירקרק-רק בהיר ועדין */
-    color: #0F2C2C;
-    /* טקסט כהה רך */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: var(--space-4);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  /* Page-level safeguard: this screen's content is fluid-width by design
+     (clamp()/%-based), so no child should ever need to exceed the viewport,
+     but clip here as a backstop against edge cases (long unbroken strings,
+     sub-pixel rounding) rather than relying on that always holding true.
+     Scoped to .landing-page only — not html/body — so it doesn't affect any
+     other page. Vertical scrolling is untouched. */
+  overflow-x: clip;
 }
 
-/* קונטיינר הכפתורים של הימים */
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.app-header__mark {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.app-header__tagline {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   Day picker
+   ========================================================================== */
 .days-buttons {
-    display: flex;
-    flex-direction: row-reverse;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding-right: 2.5%;
+  display: flex;
+  justify-content: space-between;
+  gap: clamp(4px, 1.8vw, var(--space-4));
+  width: 100%;
+  margin-bottom: var(--space-5);
 }
 
-/* כפתור יום – שקוף עם בורדר ירקרק-רק */
 .button-select-day {
-    width: 44px;
-    /* גודל אחיד */
-    height: 44px;
-    /* גודל אחיד */
-    border-radius: 50%;
-    /* עיגול מושלם */
+  width: clamp(34px, 8.5vw, 44px);
+  height: clamp(34px, 8.5vw, 44px);
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
 
-    display: flex;
-    /* מרכז טקסט */
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    background-color: transparent;
-    border: 2px solid #4FB6AC;
-    color: #0F2C2C;
+  background-color: transparent;
+  border: none;
+  color: var(--color-text-muted);
 
-    /* font-size: 1.2rem; */
-    font-weight: 600;
-    cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  font-size: clamp(0.85rem, 3vw, 1rem);
+  cursor: pointer;
 
-    transition: background-color 0.2s ease,
-        color 0.2s ease,
-        border-color 0.2s ease;
+  transition: background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-
-/* hover – מילוי עדין, עדיין אלגנטי */
 .button-select-day:hover {
-    background-color: rgba(79, 182, 172, 0.12);
+  background-color: var(--color-primary-tint);
+  color: var(--color-text);
 }
-
-/* מצב נבחר (נוסיף בהמשך ב־React, אבל כבר מכינים CSS) */
 
 .button-select-day.selected {
-    background-color: #4FB6AC;
-    color: white;
+  background-color: var(--color-primary);
+  color: white;
+  font-weight: var(--font-weight-bold);
 }
 
-/* קופסת ההמלצה */
-.time-recommendation {
-    margin-top: 24px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    background-color: white;
-    border: 1px solid rgba(79, 182, 172, 0.25);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+.button-select-day:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
 }
 
+/* ==========================================================================
+   Time range picker
+   ========================================================================== */
 .time-range {
-    display: flex;
-    flex-direction: row-reverse;
-    align-items: center;
-    gap: 10px;
-    margin-top: 14px;
-    margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  row-gap: var(--space-2);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .time-range__label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding-right: 2.5%;
-    font-size: 0.95rem;
-    color: #0F2C2C;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 
 .time-range__select {
-    background-color: transparent;
-    border: 1.5px solid #4FB6AC;
-    color: #0F2C2C;
-    padding: 10px 12px;
-    border-radius: 12px;
-    outline: none;
-    cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-base);
 }
 
-.time-range__select:focus {
-    box-shadow: 0 0 0 3px rgba(79, 182, 172, 0.18);
+.time-range__select:focus-visible {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px var(--color-secondary-tint);
 }
 
-.time-range__dash {
-    margin-top: 18px;
-    opacity: 0.7;
+.time-range__chevron {
+  width: 16px;
+  height: 16px;
+  margin-top: var(--space-4);
+  color: var(--color-text-muted);
+  transform: scaleX(-1);
 }
 
-
-.chart-card {
-  margin-top: 18px;
-  background-color: white;
-  border: 1px solid rgba(79, 182, 172, 0.25);
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+/* ==========================================================================
+   Card primitive — shared by the chart card
+   ========================================================================== */
+.card {
+  margin-top: var(--space-5);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  overflow-wrap: break-word;
 }
 
-.chart-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0F2C2C;
-  margin-bottom: 10px;
-  text-align: right;
-}
-
-.chart-container {
-  height: 260px;
+/* ==========================================================================
+   Status message — idle / loading / error / empty states
+   ========================================================================== */
+.status-message {
   position: relative;
+  overflow: hidden;
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-base);
 }
 
-
-.recommendation-box {
-  margin-top: 18px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background-color: white;
-  border: 1px solid rgba(79, 182, 172, 0.25);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
-  color: #0F2C2C;
-
-  text-align: right;   
-  direction: rtl;      
+.status-message--idle,
+.status-message--loading {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
 }
 
-.recommendation-box.hint {
-  opacity: 0.7;
+.status-message--idle {
   font-style: italic;
 }
 
-.recommendation-time {
-  margin-top: 6px;
-  font-size: 0.9rem;
-  opacity: 0.7;
+.status-message--error {
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error);
 }
 
-@media (max-width: 768px) {
+.status-message--empty {
+  background-color: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning);
+}
+
+.status-message__bar {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: 3px;
+  width: 40%;
+  background-color: var(--color-primary);
+  animation: route-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes route-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-message__bar {
+    animation: none;
+    width: 100%;
+    opacity: 0.35;
+  }
+}
+
+/* ==========================================================================
+   Recommendation panel — the signature highway-sign moment
+   ========================================================================== */
+.recommendation-panel {
+  margin-top: var(--space-5);
+  padding: var(--space-6) var(--space-5);
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow-wrap: break-word;
+}
+
+.recommendation-panel__label {
+  font-size: var(--font-size-sm);
+  opacity: 0.85;
+}
+
+.recommendation-panel__hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-family: var(--font-family-display);
+  font-size: clamp(2.25rem, 9vw, 3rem);
+  line-height: 1;
+}
+
+.recommendation-panel__icon {
+  width: 0.55em;
+  height: 0.55em;
+  flex-shrink: 0;
+}
+
+.recommendation-panel__caption {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-base);
+  opacity: 0.9;
+}
+
+.recommendation-panel__price {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.recommendation-panel__meta {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   Chart
+   ========================================================================== */
+.chart-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.chart-subtitle {
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.chart-container {
+  height: 200px;
+  position: relative;
+}
+
+/* Recharts renders its root SVG with tabIndex=0/role="application" for
+   keyboard data exploration (accessibility layer), AND — separately —
+   programmatically focuses an inner, unclassed <g tabindex="-1"> layer
+   whenever a line/point is clicked, for its own accessibility announcement.
+   Neither has a mouse-vs-keyboard focus heuristic of its own, so a plain
+   click on the surface or on the line/dots triggers the browser's default
+   focus ring on whichever of the two received focus. Keep the ring for
+   keyboard users via :focus-visible, but not for mouse clicks, on both. */
+.recharts-surface:focus,
+.recharts-surface :focus {
+  outline: none;
+}
+
+.recharts-surface:focus-visible,
+.recharts-surface :focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Responsive breakpoints (mobile-first)
+   ========================================================================== */
+@media (min-width: 480px) {
+  .days-buttons {
+    justify-content: flex-start;
+    gap: var(--space-4);
+  }
+
+  .time-range {
+    justify-content: flex-start;
+  }
+}
+
+@media (min-width: 768px) {
   .chart-container {
-    height: 200px; /* Shorter on mobile */
+    height: 260px;
   }
-  
-  .chart-card {
-    margin-top: 12px;
-    padding: 10px 12px;
+
+  .card,
+  .recommendation-panel {
+    padding: var(--space-5) var(--space-6);
   }
 }
 
-
-
-
+@media (min-width: 1024px) {
+  .landing-page {
+    max-width: var(--content-max-width);
+    margin-inline: auto;
+    padding: var(--space-6) var(--space-4);
+  }
+}

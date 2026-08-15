@@ -1,29 +1,30 @@
 import "../App.css";
-
-const pad2 = (n) => String(n).padStart(2, "0");
+import StatusMessage from "./StatusMessage.jsx";
+import ChevronIcon from "./ChevronIcon.jsx";
+import { pad2 } from "../utils/format.js";
 
 function RecommendationBox({ status, recommendation }) {
   if (status === "idle") {
     return (
-      <div className="recommendation-box hint">
+      <StatusMessage variant="idle">
         בחר יום וטווח שעות כדי לקבל המלצה
-      </div>
+      </StatusMessage>
     );
   }
 
   if (status === "loading") {
     return (
-      <div className="recommendation-box hint">
+      <StatusMessage variant="loading">
         טוען המלצה...
-      </div>
+      </StatusMessage>
     );
   }
 
   if (status === "error") {
     return (
-      <div className="recommendation-box error">
+      <StatusMessage variant="error">
         שגיאה: לא התקבלה תשובה מהשרת.
-      </div>
+      </StatusMessage>
     );
   }
 
@@ -31,9 +32,9 @@ function RecommendationBox({ status, recommendation }) {
   const results = recommendation?.results;
   if (!Array.isArray(results) || results.length === 0) {
     return (
-      <div className="recommendation-box error">
-        אין נתונים זמינים לטווח שבחרת.
-      </div>
+      <StatusMessage variant="empty">
+        אין נתונים עבור היום וטווח השעות שנבחרו — נסה טווח אחר.
+      </StatusMessage>
     );
   }
 
@@ -45,14 +46,15 @@ function RecommendationBox({ status, recommendation }) {
   const mm = pad2(best.minute_bucket ?? 0);
 
   return (
-    <div className="recommendation-box">
-      <div className="recommendation-title">המלצה</div>
-      <div className="recommendation-main">
-        השעה המומלצת ביותר: <strong>{hh}:{mm}</strong>
+    <div className="recommendation-panel">
+      <div className="recommendation-panel__label">המלצה</div>
+      <div className="recommendation-panel__hero">
+        <ChevronIcon className="recommendation-panel__icon" />
+        <span>{hh}:{mm}</span>
       </div>
-      <div className="recommendation-sub">
-        מחיר ממוצע: {best.avg_price} ₪ | דגימות: {best.sample_count}
-      </div>
+      <div className="recommendation-panel__caption">השעה המשתלמת ביותר לנסיעה</div>
+      <div className="recommendation-panel__price">מחיר ממוצע: {best.avg_price} ₪</div>
+      <div className="recommendation-panel__meta">מבוסס על {best.sample_count} דגימות</div>
     </div>
   );
 }

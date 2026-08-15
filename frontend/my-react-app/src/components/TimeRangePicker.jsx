@@ -1,4 +1,6 @@
 import "../App.css";
+import ChevronIcon from "./ChevronIcon.jsx";
+import { formatHourLabel } from "../utils/format.js";
 
 function TimeRangePicker({ fromHour, toHour, onChange }) {
     const hours = Array.from({ length: 24 }, (_, i) => i); // 0..23
@@ -21,26 +23,24 @@ function TimeRangePicker({ fromHour, toHour, onChange }) {
         }
     };
 
-    const fmt = (h) => `${String(h).padStart(2, "0")}:00`;
-
     return (
         <div className="time-range">
             <label className="time-range__label">
-                :משעה
+                משעה:
                 <select className="time-range__select" value={fromHour} onChange={handleFromChange}>
                     {hours.slice(0, 23).map((h) => (
-                        <option key={h} value={h}>{fmt(h)}</option>
+                        <option key={h} value={h}>{formatHourLabel(h)}</option>
                     ))}
                 </select>
             </label>
 
-            <span className="time-range__dash">—</span>
+            <ChevronIcon className="time-range__chevron" />
 
             <label className="time-range__label">
-                :עד שעה
+                עד שעה:
                 <select className="time-range__select" value={toHour} onChange={handleToChange}>
                     {hours.slice(1).map((h) => (
-                        <option key={h} value={h}>{fmt(h)}</option>
+                        <option key={h} value={h}>{formatHourLabel(h)}</option>
                     ))}
                 </select>
             </label>
